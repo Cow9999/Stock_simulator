@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0a0e13">
+    <title>Session — Portfolio Simulator</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/portfolio.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Session home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m3 16 5-5 4 3 8-9M15 5h5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>session<span class="brand-dot">.</span></span>
+      </a>
+      <div class="topbar-right">
+        <span class="market-status"><span class="status-dot"></span> PAPER PORTFOLIO</span>
+        <span class="topbar-divider"></span>
+        <span class="topbar-label">SAVED ON THIS DEVICE</span>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="intro">
+        <div class="eyebrow"><span class="eyebrow-line"></span> PORTFOLIO RESEARCH LAB</div>
+        <h1>Think in days.<br><span>Build a portfolio.</span></h1>
+        <p class="intro-copy" id="market-intro-copy">Backtest local futures data with transparent quant strategies, simulate daily portfolio decisions, and review the trades and performance.</p>
+      </section>
+
+      <aside class="market-sidebar" aria-label="Trading workspace">
+        <p class="section-kicker">WORKSPACE</p>
+        <button class="market-tab is-active" type="button" data-market="futures" aria-pressed="true"><span class="market-tab-index">01</span><span>Futures Trading</span></button>
+        <button class="market-tab" type="button" data-market="stock" aria-pressed="false"><span class="market-tab-index">02</span><span>Stock Trading</span></button>
+        <button class="market-tab" id="live-workspace-tab" type="button" aria-pressed="false"><span class="market-tab-index">03</span><span>Live Paper Trading</span></button>
+      </aside>
+
+      <section class="setup card" id="setup" aria-label="Portfolio and strategy settings">
+        <div class="setup-heading">
+          <div>
+            <p class="section-kicker">BUILD YOUR PAPER RUN</p>
+            <h2>Configure a simulation</h2>
+          </div>
+          <div class="data-source" id="data-source-label"><span class="source-dot"></span><span>LOCAL bars.pkl</span><span class="source-separator">·</span><span>1-minute data → daily sessions</span></div>
+        </div>
+        <form id="portfolio-form">
+          <nav class="setup-tabs" aria-label="Simulation setup steps">
+            <button class="setup-tab is-active" type="button" data-step="1" aria-current="step"><span>01</span><span>Portfolio</span></button>
+            <button class="setup-tab" type="button" data-step="2"><span>02</span><span>Sliders</span></button>
+            <button class="setup-tab" type="button" data-step="3"><span>OR</span><span>Algorithm</span></button>
+          </nav>
+
+          <section class="setup-panel" data-panel="1" aria-labelledby="step-one-heading">
+            <div class="step-heading"><p class="section-kicker">01 / PORTFOLIO</p><h3 id="step-one-heading">Choose instruments</h3><p id="market-selection-help">Backtests use only the ES, NQ, YM, and RTY 1-minute bars.pkl files in this app folder. They provide price references for the corresponding micro futures. Choose capital and how many historical sessions to replay.</p></div>
+            <div class="company-search">
+              <label class="field" for="company-search-input">
+                <span class="field-label" id="company-search-label">FIND A FUTURES DATASET</span>
+                <input id="company-search-input" type="search" placeholder="Try S&amp;P 500, Nasdaq, Dow, or RTY" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="company-suggestions">
+              </label>
+              <ul class="company-suggestions" id="company-suggestions" role="listbox" aria-label="Trading instrument matches" hidden></ul>
+              <p class="company-search-status" id="company-search-status" role="status" aria-live="polite"></p>
+            </div>
+            <label class="ai-picker-toggle">
+              <input id="ai-picker-enabled" type="checkbox" checked>
+              <span class="ai-picker-copy"><strong>Let quant ranking pick instruments</strong><small id="ai-picker-help">Ranks selected futures datasets daily using your momentum, pullback, and volatility weights.</small></span>
+              <span class="ai-toggle-badge">AI PICKER ON</span>
+            </label>
+            <div class="settings-form portfolio-form-grid">
+              <label class="field symbols-field">
+                <span class="field-label" id="symbols-label">OPTIONAL SYMBOLS TO ADD</span>
+                <input id="symbols-input" type="text" value="" placeholder="Optional: MNQ=F" autocomplete="off" spellcheck="false" aria-label="Optional stock or Nasdaq micro futures symbols">
+              </label>
+              <label class="field cash-field">
+                <span class="field-label">INITIAL CAPITAL · FIRST RUN ONLY</span>
+                <span class="money-input"><span id="cash-currency-symbol">$</span><input id="cash-input" type="number" min="100" max="100000000" step="100" value="100000" aria-label="Starting capital"></span>
+              </label>
+            </div>
+            <fieldset class="futures-picker">
+              <legend>NASDAQ FUTURES DATASET</legend>
+              <p>MNQ=F is the selectable futures contract, using NQ reference bars. Older saved portfolios are preserved, but new futures entries are limited to Nasdaq MNQ. Futures can be traded long or short.</p>
+              <div id="futures-contract-list" class="futures-contract-list"><span>Loading local datasets…</span></div>
+              <small>E-mini reference bars are used for micro-contract price changes and volume; micro contract multipliers and fixed margin assumptions are simulated. Actual micro volume, contract rolls, broker fees, and changing margin requirements are not modeled.</small>
+            </fieldset>
+            <fieldset class="futures-picker stock-picker" id="stock-picker" hidden>
+              <legend>STOCK DATA UNIVERSE</legend>
+              <p>Search companies by name or ticker. Daily Yahoo Finance bars are cached on this device and limited to dates covered by the local futures files.</p>
+              <div class="stock-data-status" id="stock-data-status" role="status">Cached stock history is reused for 24 hours and refreshed when it expires.</div>
+            </fieldset>
+            <div class="days-control">
+              <div class="range-heading"><label class="field-label" for="days-input">DAYS TO REPLAY</label><span class="days-number"><input id="days-input" type="number" min="1" max="2500" value="5" step="1" inputmode="numeric" aria-label="Number of trading days to simulate"><span>days</span></span></div>
+              <p id="days-help">Choose up to 2,500 of the latest complete sessions. Positions carry forward between sessions.</p>
+            </div>
+            <div class="step-actions"><button class="button button-quiet step-next" type="button" data-next="3">Upload an algorithm →</button><button class="button button-primary step-next" type="button" data-next="2">Tune sliders <span aria-hidden="true">→</span></button></div>
+          </section>
+
+          <section class="setup-panel" data-panel="2" hidden aria-labelledby="step-two-heading">
+            <div class="step-heading"><p class="section-kicker">02 / STRATEGY LAB</p><h3 id="step-two-heading">Tune the signals, ranking &amp; execution</h3><p>These controls shape candidate ranking, entry timing, risk sizing, and simulated trading costs.</p></div>
+            <div class="strategy-source-picker">
+              <label class="field" for="strategy-mode"><span class="field-label">STRATEGY TO USE</span><select id="strategy-mode"><option value="local">Local slider strategy</option><option value="imported" disabled>Imported strategy</option></select></label>
+              <label class="field" id="strategy-engine-picker" for="strategy-engine"><span class="field-label">LOCAL FUTURES ENGINE</span><select id="strategy-engine"><option value="orb_nq_trio">ORB NQ Trio · 1-minute MNQ strategy</option><option value="quant">Daily quant strategy · MNQ only</option></select></label>
+              <label class="field" id="imported-strategy-picker" for="imported-strategy-select" hidden><span class="field-label">IMPORTED STRATEGY</span><select id="imported-strategy-select" disabled><option value="">Import a strategy first</option></select></label>
+              <p id="strategy-source-status" role="status" aria-live="polite">The local slider strategy is active.</p>
+              <button class="button button-quiet remove-imported-strategy" id="remove-imported-strategy" type="button" hidden>Remove selected imported strategy</button>
+            </div>
+            <section class="orb-settings" id="orb-settings" hidden aria-labelledby="orb-settings-heading">
+              <div class="step-heading"><p class="section-kicker">NASDAQ FUTURES · MNQ</p><h3 id="orb-settings-heading">Opening-range breakout</h3><p>Runs the supported ORB NQ Trio rules on local MNQ 1-minute bars. Presets and sizing controls mirror the Pine script’s exposed inputs; hard-coded preset parameters are shown below.</p></div>
+              <div class="orb-settings-grid">
+                <label class="field" for="orb-preset"><span class="field-label">PRESET</span><select id="orb-preset"><option>NQ sortino</option><option>NQ calmar</option><option>NQ payouts</option></select></label>
+                <label class="field" for="orb-sizing"><span class="field-label">CONTRACT SIZING</span><select id="orb-sizing"><option value="fixed">Fixed quantity</option><option value="risk">Approximate risk-sized</option></select></label>
+                <label class="range-control" for="orb-quantity"><span class="range-heading"><span>FIXED CONTRACTS · PINE QTY_FIXED</span><output id="orb-quantity-value">1</output></span><input id="orb-quantity" type="range" min="1" max="100" value="1" step="1"><span class="range-hint">One MNQ micro per contract</span></label>
+                <label class="range-control" for="orb-cap"><span class="range-heading"><span>RISK-SIZED CAP · PINE QTY_CAP</span><output id="orb-cap-value">20</output></span><input id="orb-cap" type="range" min="1" max="40" value="20" step="1"><span class="range-hint">Source maximum is 40 contracts</span></label>
+              </div>
+              <div class="orb-preset-details" id="orb-preset-details" aria-live="polite"></div>
+              <p class="algorithm-help">Risk-sized mode is approximate and uses the selected Pine preset’s R/factor values. Trading costs follow the source: $0.61 commission per contract per fill and one tick ($0.25) slippage. The script’s $48,000–$50,000 daily equity floor is retained. Futures Trading is restricted to MNQ; Stock Trading remains unchanged.</p>
+            </section>
+            <div id="quant-strategy-controls">
+            <p id="strategy-summary" class="strategy-summary">Strategy settings</p>
+            <div class="strategy-assistant">
+              <label class="field" for="strategy-sentence"><span class="field-label">DESCRIBE YOUR STRATEGY IDEA IN PLAIN LANGUAGE</span><textarea id="strategy-sentence" rows="2" maxlength="1000" placeholder="Example: follow momentum and be moderately risky"></textarea></label>
+              <div class="assistant-actions"><p>Creates editable slider suggestions from risk and price-action phrases. Company or sector preferences do not apply to these index-futures datasets.</p><button class="button button-quiet" id="suggest-strategy" type="button">Suggest settings</button></div>
+              <div class="strategy-suggestions" id="strategy-suggestions" aria-live="polite" hidden></div>
+              <button class="button button-primary apply-suggestions" id="apply-suggestions" type="button" hidden>Apply suggested settings</button>
+            </div>
+            <div class="strategy-group">
+              <h4>Signal &amp; entry</h4>
+              <div class="slider-grid">
+                <label class="range-control"><span class="range-heading"><span>Mean-reversion lookback</span><output id="lookbackDays-value"></output></span><input id="lookbackDays" type="range" min="5" max="60" value="20" step="1"><span class="range-hint">Previous completed daily closes</span></label>
+                <label class="range-control"><span class="range-heading"><span>Entry threshold</span><output id="entryZ-value"></output></span><input id="entryZ" type="range" min="0.5" max="3" value="1.25" step="0.05"><span class="range-hint">Enter long or short when the absolute z-score reaches this level</span></label>
+                <label class="range-control"><span class="range-heading"><span>Exit threshold</span><output id="exitZ-value"></output></span><input id="exitZ" type="range" min="-0.5" max="1" value="0" step="0.05"><span class="range-hint">Mean-reversion exit level, mirrored for short positions</span></label>
+                <label class="range-control"><span class="range-heading"><span>Stop-loss volatility multiplier</span><output id="stopVolMultiplier-value"></output></span><input id="stopVolMultiplier" type="range" min="0.5" max="3" value="2" step="0.1"><span class="range-hint">Sets stop distance from recent daily volatility</span></label>
+              </div>
+            </div>
+            <div class="strategy-group">
+              <h4>Portfolio risk</h4>
+              <div class="slider-grid">
+                <label class="range-control"><span class="range-heading"><span>Risk per trade</span><output id="riskPct-value"></output></span><input id="riskPct" type="range" min="0.1" max="2" value="0.5" step="0.1"><span class="range-hint">Target equity risk at the stop</span></label>
+                <label class="range-control"><span class="range-heading"><span>Maximum capital allocation</span><output id="maxAllocationPct-value"></output></span><input id="maxAllocationPct" type="range" min="10" max="100" value="80" step="5"><span class="range-hint">Cap across position notional and reserved futures margin</span></label>
+                <label class="range-control"><span class="range-heading"><span>Maximum new quant picks</span><output id="maxAiPicks-value"></output></span><input id="maxAiPicks" type="range" min="1" max="100" value="4" step="1"><span class="range-hint">Maximum ranked instruments eligible for new entries</span></label>
+              </div>
+            </div>
+            <div class="strategy-group">
+              <h4>Quant ranking weights <span class="weight-hint">Weights are normalized automatically</span></h4>
+              <div class="slider-grid">
+                <label class="range-control"><span class="range-heading"><span>Risk-adjusted momentum</span><output id="momentumWeight-value"></output></span><input id="momentumWeight" type="range" min="0" max="100" value="45" step="5"><span class="range-hint">Preference for positive return per unit of risk</span></label>
+                <label class="range-control"><span class="range-heading"><span>Mean-reversion pullback</span><output id="pullbackWeight-value"></output></span><input id="pullbackWeight" type="range" min="0" max="100" value="30" step="5"><span class="range-hint">Preference for deeper price pullbacks</span></label>
+                <label class="range-control"><span class="range-heading"><span>Lower volatility</span><output id="lowVolWeight-value"></output></span><input id="lowVolWeight" type="range" min="0" max="100" value="25" step="5"><span class="range-hint">Preference for less volatile candidates</span></label>
+                <label class="range-control"><span class="range-heading"><span>Momentum measurement window</span><output id="momentumDays-value"></output></span><input id="momentumDays" type="range" min="5" max="120" value="20" step="5"><span class="range-hint">Completed sessions used to calculate momentum</span></label>
+              </div>
+            </div>
+            <div class="strategy-group">
+              <h4>Execution assumptions</h4>
+              <div class="slider-grid">
+                <label class="range-control"><span class="range-heading"><span>Slippage</span><output id="slippageBps-value"></output></span><input id="slippageBps" type="range" min="0" max="25" value="5" step="1"><span class="range-hint">Estimated adverse fill in basis points per side</span></label>
+                <label class="range-control"><span class="range-heading"><span>Commission</span><output id="commissionBps-value"></output></span><input id="commissionBps" type="range" min="0" max="25" value="1" step="1"><span class="range-hint">Simulated commission in basis points per side</span></label>
+              </div>
+            </div>
+            </div>
+            <div class="step-actions"><button class="button button-quiet step-back" type="button" data-previous="1">← Portfolio</button><button class="button button-primary" id="run-sliders" type="submit">Simulate strategy <span aria-hidden="true">→</span></button></div>
+          </section>
+
+          <section class="setup-panel" data-panel="3" hidden aria-labelledby="step-three-heading">
+            <div class="step-heading"><p class="section-kicker">03 / STRATEGY IMPORT</p><h3 id="step-three-heading">Upload and run your algorithm</h3><p>Import or export the active strategy configuration. ORB JSON includes its Pine inputs and all resolved preset values.</p></div>
+            <div class="algorithm-import-card">
+              <label class="field">Strategy library<select id="research-strategy"><option value="momentum252">Daily 12-month momentum · research adaptation</option><option value="sma50200">Daily SMA 50/200 · trend baseline</option></select></label>
+              <p class="algorithm-help">Daily strategies for stocks or MNQ. Momentum uses 252 completed sessions and reviews every 21 bars; SMA uses 50/200-session crosses. Long-only adaptations with simulator risk controls—not proven improvements. <a href="https://www.aqr.com/Insights/Research/Journal-Article/Time-Series-Momentum" target="_blank" rel="noopener">Momentum research</a> · <a href="https://www.quantconnect.com/research/15339/asset-class-trend-following/" target="_blank" rel="noopener">Trend-following methodology</a></p>
+              <button class="button button-quiet" type="button" id="load-research-strategy">Use selected strategy</button>
+            </div>
+            <details class="algorithm-json-details"><summary>Optional: import or export JSON settings</summary>
+            <div class="algorithm-import-card">
+              <label class="field" for="strategy-file"><span class="field-label">UPLOAD A STRATEGY JSON FILE</span><input id="strategy-file" type="file" accept=".json,application/json"></label>
+              <label class="field" for="strategy-json"><span class="field-label">OR PASTE / EDIT THE CONFIGURATION</span><textarea id="strategy-json" rows="12" spellcheck="false" aria-describedby="strategy-json-help"></textarea></label>
+              <p class="algorithm-help" id="strategy-json-help">Import applies a validated ORB configuration to Futures Trading or saves a quant preset for the imported-strategy selector. Export writes the active settings as reusable JSON. JSON never executes code.</p>
+              <p class="strategy-json-status" id="strategy-json-status" role="status" aria-live="polite"></p>
+              <div class="algorithm-actions"><button class="button button-quiet" id="export-strategy" type="button">Export active strategy</button><button class="button button-quiet" id="import-strategy" type="button">Import as strategy</button></div>
+            </div>
+            </details>
+            <div class="algorithm-import-card custom-code-card">
+              <div><p class="field-label">SUPPORTED STRATEGY SOURCE IMPORT</p><p class="algorithm-help">The ORB NQ Trio Pine source is parsed for its input controls and three preset tables, then mapped to the dedicated MNQ simulator; Pine code is not executed. Other Pine files use the safe subset: supported indicators, crossover signals, and conditional entry/close orders. Unsupported Pine code is rejected. Python and C++ run locally using the on_bar interface: return buy, sell, or hold from completed OHLCV bars. C++ requires g++. Other frameworks need adaptation to this interface.</p></div>
+              <label class="field" for="algorithm-file"><span class="field-label">UPLOAD .PY, .CPP, .PINE, OR PLAIN TEXT</span><input id="algorithm-file" type="file" accept=".py,.cpp,.pine,.pinescript,.txt,text/plain,text/x-python,text/x-c++src"></label>
+              <label class="field" for="algorithm-language"><span class="field-label">SOURCE LANGUAGE</span><select id="algorithm-language"><option value="pine">Pine Script (runnable subset)</option><option value="python">Python 3 (on_bar)</option><option value="cpp">C++17 (on_bar)</option></select></label>
+              <label class="field" for="algorithm-source"><span class="field-label">OR PASTE / EDIT SOURCE CODE</span><textarea id="algorithm-source" rows="12" maxlength="100000" spellcheck="false" placeholder="Paste a supported Pine strategy, or a Python/C++ on_bar algorithm. Download an example below."></textarea></label>
+              <p class="algorithm-help">Download runnable examples: <a href="/examples/algorithm.py" download>Python</a> · <a href="/examples/algorithm.cpp" download>C++</a> · <a href="/examples/algorithm.pine" download>Pine</a>. Run algorithm validates, activates, and simulates your source in one step.</p>
+              <label class="algorithm-help"><input id="trust-algorithm" type="checkbox"> I trust this source. Python/C++ executes locally with my account permissions (not sandboxed).</label>
+              <div class="custom-analysis-result" id="custom-analysis-result" aria-live="polite" hidden></div>
+              <p class="custom-algorithm-status" id="custom-algorithm-status" role="status" aria-live="polite"></p>
+              <div class="algorithm-actions"><button class="button button-quiet" id="clear-algorithm" type="button">Clear source</button><button class="button button-quiet" id="apply-analysis" type="button" hidden>Use this algorithm</button><button class="button button-primary" id="check-algorithm" type="button">Validate algorithm</button></div>
+            </div>
+            <div class="strategy-note">
+              <span class="note-icon" aria-hidden="true">i</span>
+              <p><strong>Replay model:</strong> the ORB engine uses the parsed Pine preset rules on local MNQ minute bars; uploaded algorithms use completed bars for signals and execute at the next historical open. Saved risk sizing, stops, and costs still apply. The quant picker is deterministic, not an external LLM or investment adviser.</p>
+            </div>
+            <label class="algorithm-help"><input id="fresh-algorithm-backtest" type="checkbox" checked> Fresh backtest: archive previous results and replay the selected days with this algorithm. Uncheck to continue the existing portfolio.</label>
+            <div class="step-actions"><button class="button button-quiet step-back" type="button" data-previous="1">← Portfolio</button><button class="button button-primary" id="run-button" type="submit">Run algorithm <span aria-hidden="true">→</span></button></div>
+          </section>
+        </form>
+        <p class="form-message" id="status-message" role="status"></p>
+      </section>
+
+      <section class="results" id="results" aria-label="Portfolio results" hidden>
+        <div class="results-heading">
+          <div><p class="section-kicker">04 &nbsp;/&nbsp; PORTFOLIO DASHBOARD</p><h2>Your portfolio</h2><p class="session-caption" id="portfolio-caption">Create a portfolio to begin</p></div>
+          <div class="simulation-actions"><button class="button button-primary" id="run-next-stock-day" type="button" hidden>Run next stock day</button><button class="button button-quiet" id="edit-setup" type="button">Edit setup</button><span class="playback-status" id="playback-status"><span class="status-dot"></span> READY</span><span class="trade-count-pill" id="session-count">0 simulated days</span><button class="button button-danger" id="reset-button" type="button">Reset portfolio</button></div>
+        </div>
+
+        <div class="metrics-grid" aria-live="polite">
+          <article class="metric-card metric-primary"><span class="metric-label">PORTFOLIO VALUE</span><span class="metric-value" id="metric-equity">—</span><span class="metric-detail" id="metric-equity-detail">Cash plus open holdings</span></article>
+          <article class="metric-card"><span class="metric-label">TOTAL P&amp;L</span><span class="metric-value" id="metric-total-pnl">—</span><span class="metric-detail" id="metric-total-pnl-detail">Since starting</span></article>
+          <article class="metric-card"><span class="metric-label">LATEST DAY P&amp;L</span><span class="metric-value" id="metric-daily-pnl">—</span><span class="metric-detail" id="metric-daily-pnl-detail">No sessions simulated</span></article>
+          <article class="metric-card"><span class="metric-label">OPEN HOLDINGS</span><span class="metric-value" id="metric-holdings">0</span><span class="metric-detail" id="metric-holdings-detail">No closed trades</span></article>
+        </div>
+
+        <article class="chart-card card">
+          <div class="chart-heading"><div><p class="section-kicker">PORTFOLIO EQUITY</p><h3>Account value over time</h3></div><span class="equity-live" id="replay-day-label">No sessions yet</span></div>
+          <div class="chart-wrap equity-chart-wrap"><canvas id="equity-chart" role="img" aria-label="Portfolio equity history across simulated trading days"></canvas><div class="chart-empty" id="equity-overlay">Your account value will appear as you run trading days.</div></div>
+          <div class="chart-footer"><span>DAILY MARK-TO-MARKET · CASH + OPEN POSITIONS</span><span>STARTING CAPITAL <span id="starting-capital-label">$10,000</span></span></div>
+        </article>
+
+        <article class="chart-card card equity-card">
+          <div class="chart-heading"><div><p class="section-kicker">INSTRUMENT PRICE &amp; TRADES</p><h3>Daily closes and executions</h3></div><label class="chart-symbol-label">SYMBOL <select id="chart-symbol" aria-label="Select an instrument for its price chart"></select></label></div>
+          <div class="chart-wrap price-chart-wrap"><canvas id="price-chart" role="img" aria-label="Daily instrument closes and simulated trades"></canvas></div>
+          <div class="chart-footer"><span>▲ ENTRY · <span class="positive">GREEN</span></span><span>● EXIT · <span class="negative">RED</span></span></div>
+        </article>
+
+        <article class="trades-card card">
+          <div class="trades-heading"><div><p class="section-kicker">LIVE PORTFOLIO</p><h3>Open holdings</h3></div><span class="trade-count-pill" id="holdings-count">0 holdings</span></div>
+          <div class="trade-table-wrap"><table><thead><tr><th>TICKER</th><th>SHARES / CONTRACTS</th><th>LAST PRICE</th><th>VALUE / MARGIN</th><th>OPENED</th><th>UNREALIZED P&amp;L</th></tr></thead><tbody id="holdings-body"><tr class="empty-row"><td colspan="6">No open holdings.</td></tr></tbody></table></div>
+        </article>
+
+        <article class="trades-card card">
+          <div class="trades-heading"><div><p class="section-kicker">TRADE HISTORY</p><h3>Closed trades, including costs</h3></div><span class="trade-count-pill" id="trade-count-pill">0 closed</span></div>
+          <div class="trade-table-wrap"><table><thead><tr><th>TICKER</th><th>ENTRY DATE</th><th>EXIT DATE</th><th>SHARES / CONTRACTS</th><th>ENTRY PRICE</th><th>EXIT PRICE</th><th>NET P&amp;L</th><th>EXIT REASON</th></tr></thead><tbody id="trades-body"><tr class="empty-row"><td colspan="8">Closed trades will appear here.</td></tr></tbody></table></div>
+          <p class="table-footnote" id="trade-history-footnote">The portfolio is paper-only and saved separately for each trading workspace. Historical simulations are illustrative, not financial advice.</p>
+        </article>
+        <article class="daily-report-card card">
+          <div class="trades-heading"><div><p class="section-kicker">SESSION WRAP-UP</p><h3>Simulation summary</h3></div><span class="trade-count-pill" id="report-count">0 reports</span></div>
+          <p class="report-summary" id="report-summary"></p>
+          <div class="report-summary-metrics" id="report-summary-metrics"></div>
+          <details class="report-history">
+            <summary>See saved day-by-day strategy decisions <span id="report-history-count">0 days</span></summary>
+            <div id="daily-report-list" class="daily-report-list"><p class="empty-report">Daily picks and decisions will be listed here after simulation.</p></div>
+          </details>
+        </article>
+      </section>
+      <section class="card" id="live-stock-panel" hidden style="padding:24px;margin-top:24px">
+        <p class="section-kicker">LIVE STOCK PAPER TRADING</p>
+        <h3>Live market &amp; paper account</h3>
+        <p>Quotes refresh every 15 seconds while this workspace is open; paper trading checks every 30 seconds while running. Yahoo may delay quotes. Closed or stale markets pause fills. Keep the browser open. No brokerage orders.</p>
+        <label class="field">Stock ticker <input id="live-symbol" value="AAPL" maxlength="15"></label>
+        <div class="live-metrics"><div><span>Latest quote</span><strong id="live-price">—</strong></div><div><span>Paper equity</span><strong id="live-equity">—</strong></div><div><span>Paper P&amp;L</span><strong id="live-pnl">—</strong></div><div><span>Quote timestamp</span><strong id="live-quote-time">—</strong></div></div>
+        <p class="algorithm-help">1-minute candles · Green: close ≥ open · Red: close &lt; open · Hover a candle for OHLC prices.</p>
+        <svg id="live-chart" viewBox="0 0 900 300" role="img" aria-label="Latest completed one-minute candlesticks with price and time axes"></svg>
+        <p id="live-feed-status" role="status">Open this workspace to connect to quotes.</p>
+        <button class="button button-quiet" id="live-refresh" type="button">Refresh quote</button>
+        <div class="live-ticket">
+          <div><p class="section-kicker">MANUAL ORDER · PAPER ACCOUNT</p><h3>Buy or sell shares</h3><p id="live-position">No position loaded.</p><p id="live-cash">Buying power: —</p><button class="button button-quiet" id="live-held-symbol" type="button" hidden>View held ticker</button></div>
+          <div><label class="field">Shares<input id="live-quantity" type="number" min="1" step="1" value="1" inputmode="numeric"></label>
+          <div class="live-order-actions"><button class="button button-quiet" id="live-max-buy" type="button">Max buy</button><button class="button button-quiet" id="live-sell-all" type="button">All held shares</button></div>
+          <p id="live-estimate">Choose a ticker to estimate your order.</p><div class="live-order-actions"><button class="button live-buy" id="live-buy" type="button" disabled>Buy shares</button><button class="button live-sell" id="live-sell" type="button" disabled>Sell shares</button></div>
+          <p id="live-order-status" role="status" aria-live="polite">Market orders fill using a fresh quote, with 0.05% slippage and 0.01% fees. Hold multiple stocks; purchases of the same stock combine into one position.</p></div>
+        </div>
+        <section aria-label="Stock chart overview"><h3>Your stocks at a glance</h3><p>Live charts for every open stock and the active automated ticker. Shared by quant, uploaded algorithms, and manual trading.</p><div id="live-stock-charts" class="stock-chart-grid"></div></section>
+        <section aria-label="Open paper positions"><h3>Open positions</h3><p>Sell all closes only that stock using a fresh market quote. Stop automation before selling manually.</p><div id="live-positions">No open positions.</div></section>
+        <details class="live-automation"><summary>Automate with an algorithm</summary>
+        <label class="field">Live strategy<select id="live-strategy"><option value="quant">Quant · live minute mean reversion</option><option value="minute-cross">SMA 20/50 minutes · experimental paper demo</option><option value="uploaded">Active Stock Trading upload</option></select></label>
+        <p class="algorithm-help">Quant trades the selected ticker using the stock sliders’ lookback and entry/exit thresholds, interpreted as minute bars. It buys pullbacks and sells on mean reversion; this is an experimental minute adaptation, without daily universe ranking. Entries use 10% of available cash with 5 bps slippage and 1 bp fees. Quant exits also check a 2% loss from entry at each new completed candle (not a guaranteed stop price). Settings are pinned until stopped. Stop automation to place manual orders.</p>
+        <button class="button button-primary" id="live-start" type="button">Start automation</button>
+        <button class="button button-quiet" id="live-stop" type="button" disabled>Stop automation</button>
+        </details>
+        <p id="live-status" role="status">Upload and activate an algorithm to begin.</p>
+        <h3>Recent fills</h3>
+        <pre id="live-account" style="white-space:pre-wrap"></pre>
+      </section>
+      <footer class="page-footer"><span>A research sandbox. Not investment advice.</span><span>Separate stock/futures portfolios · Cached stock history · Local futures bars</span></footer>
+    </main>
+  <script src="research_strategies.js" defer></script><script src="live_trading.js" defer></script></body>
+</html>
